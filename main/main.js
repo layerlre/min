@@ -1,6 +1,7 @@
 const electron = require('electron')
 const fs = require('fs')
 const path = require('path')
+const url = require('url')
 
 const {
   app, // Module to control application life.
@@ -28,7 +29,7 @@ if (process.argv.some(arg => arg === '-v' || arg === '--version')) {
   console.log('Chromium: ' + process.versions.chrome)
   process.exit()
 }
-
+let browserMode = false
 let isInstallerRunning = false
 const isDevelopmentMode = process.argv.some(arg => arg === '--development-mode')
 
@@ -92,6 +93,9 @@ var saveWindowBounds = function () {
 }
 
 function sendIPCToWindow (window, action, data) {
+  if (!browserMode) {
+    return
+  }
   if (window && window.isDestroyed()) {
     console.warn('ignoring message ' + action + ' sent to destroyed window')
     return
@@ -260,7 +264,7 @@ function createWindowWithBounds (bounds) {
   newWin.on('unmaximize', function () {
     sendIPCToWindow(newWin, 'unmaximize')
   })
-  
+
   newWin.on('focus', function () {
     sendIPCToWindow(newWin, 'focus')
   })
@@ -324,7 +328,44 @@ function createWindowWithBounds (bounds) {
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
-app.on('ready', function () {
+// app.on('ready', function () {
+//   settings.set('restartNow', false)
+//   appIsReady = true
+//
+//   /* the installer launches the app to install registry items and shortcuts,
+//   but if that's happening, we shouldn't display anything */
+//   if (isInstallerRunning) {
+//     return
+//   }
+//
+//   registerBundleProtocol(session.defaultSession)
+//
+//   const newWin = createWindow()
+//
+//   newWin.webContents.on('did-finish-load', function () {
+//     // if a URL was passed as a command line argument (probably because Min is set as the default browser on Linux), open it.
+//     handleCommandLineArguments(process.argv)
+//
+//     // there is a URL from an "open-url" event (on Mac)
+//     if (global.URLToOpen) {
+//       // if there is a previously set URL to open (probably from opening a link on macOS), open it
+//       sendIPCToWindow(newWin, 'addTab', {
+//         url: global.URLToOpen
+//       })
+//       global.URLToOpen = null
+//     }
+//   })
+//
+//   mainMenu = buildAppMenu()
+//   Menu.setApplicationMenu(mainMenu)
+//   createDockMenu()
+// })
+
+ipc.on('start', function () {
+  console.log('start.....')
+  if (mainWindow) {
+    mainWindow.close()
+  }
   settings.set('restartNow', false)
   appIsReady = true
 
@@ -355,7 +396,8 @@ app.on('ready', function () {
   mainMenu = buildAppMenu()
   Menu.setApplicationMenu(mainMenu)
   createDockMenu()
-})
+  browserMode = true
+});
 
 app.on('open-url', function (e, url) {
   if (appIsReady) {
@@ -395,7 +437,7 @@ app.on('second-instance', function (e, argv, workingDir) {
  * Opens a new tab when all tabs are closed, and min is still open by clicking on the application dock icon
  */
 app.on('activate', function (/* e, hasVisibleWindows */) {
-  if (!windows.getCurrent() && appIsReady) { // sometimes, the event will be triggered before the app is ready, and creating new windows will fail
+  if (!windows.getCurrent() && appIsReady && browserMode) { // sometimes, the event will be triggered before the app is ready, and creating new windows will fail
     createWindow()
   }
 })
@@ -449,6 +491,33 @@ ipc.on('request-tab-state', function(e) {
   otherWindow.webContents.send('read-tab-state')
 })
 
+// start calculator
+app.on("ready", function () {
+  mainWindow = new BrowserWindow({
+    width: 500,
+    height: 850,
+    icon: __dirname + "/img/system.png",
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: true,
+      worldSafeExecuteJavaScript: true,
+      allowRunningInsecureContent: true,
+      autoHideMenuBar: true,
+    },
+  });
+
+  mainWindow.loadURL(
+    url.format({
+      pathname: path.join(__dirname, "cal.html"),
+      protocol: "file:",
+      slashes: true,
+    })
+  );
+
+  mainWindow.on("closed", function () {
+    mainWindow = null;
+  });
+});
 /* places service */
 
 const placesPage = 'file://' + __dirname + '/js/places/placesService.html'
