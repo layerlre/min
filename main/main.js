@@ -363,9 +363,6 @@ function createWindowWithBounds (bounds) {
 
 ipc.on('start', function () {
   console.log('start.....')
-  if (mainWindow) {
-    mainWindow.close()
-  }
   settings.set('restartNow', false)
   appIsReady = true
 
@@ -397,6 +394,9 @@ ipc.on('start', function () {
   Menu.setApplicationMenu(mainMenu)
   createDockMenu()
   browserMode = true
+  if (mainWindow) {
+    mainWindow.close()
+  }
 });
 
 app.on('open-url', function (e, url) {
@@ -516,7 +516,9 @@ app.on("ready", function () {
 
   mainWindow.on('close', (event) => {
     console.log('...closing calculator')
-    app.quit()
+    if (!browserMode) {
+      app.quit()
+    }
   });
 
   mainWindow.on("closed", function () {
