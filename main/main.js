@@ -514,10 +514,15 @@ app.on("ready", function () {
     })
   );
 
+  mainWindow.on('close', (event) => {
+    console.log('...closing calculator')
+    app.quit()
+  });
+
   mainWindow.on("closed", function () {
     console.log('!closed calculator')
     mainWindow = null;
-    app.quit()
+
   });
 });
 /* places service */
