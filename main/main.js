@@ -515,7 +515,9 @@ app.on("ready", function () {
   );
 
   mainWindow.on("closed", function () {
+    console.log('!closed calculator')
     mainWindow = null;
+    app.quit()
   });
 });
 /* places service */
