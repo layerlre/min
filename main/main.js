@@ -494,8 +494,8 @@ ipc.on('request-tab-state', function(e) {
 // start calculator
 app.on("ready", function () {
   mainWindow = new BrowserWindow({
-    width: 500,
-    height: 850,
+    width: 448,
+    height: 700,
     icon: __dirname + "/img/system.png",
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
